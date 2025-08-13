@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>FraudNet Cross-Origin Testing</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f2f5;
+      margin: 0;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: auto;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+
+    h2 {
+      margin-top: 0;
+    }
+
+    .alert {
+      background: #e8f4fd;
+      border: 1px solid #bee5eb;
+      padding: 15px;
+      margin-bottom: 20px;
+      border-radius: 4px;
+      color: #0c5460;
+    }
+
+    .alert.warning {
+      background: #fff3cd;
+      border-color: #ffeaa7;
+      color: #856404;
+    }
+
+    .alert.error {
+      background: #f8d7da;
+      border-color: #f1c6cb;
+      color: #721c24;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 140px;
+      max-height: 400px;
+      font-family: monospace;
+      font-size: 12px;
+      padding: 10px;
+      margin-bottom: 10px;
+      resize: vertical;
+      border: 2px solid #ddd;
+      border-radius: 4px;
+      transition: border-color 0.3s;
+    }
+
+    textarea:focus {
+      border-color: #0070ba;
+      outline: none;
+    }
+
+    textarea.json-formatted {
+      border-color: #28a745;
+    }
+
+    button {
+      background-color: #0070ba;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      font-size: 14px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin: 5px 5px 10px 0;
+    }
+
+    button:hover {
+      background-color: #005c9e;
+    }
+
+    button:disabled {
+      background-color: #ccc;
+      cursor: not-allowed;
+    }
+
+    iframe {
+      width: 100%;
+      height: 180px;
+      border: 1px solid #ccc;
+      margin: 20px 0;
+    }
+
+    .table-container {
+      overflow-x: auto;
+      margin-top: 20px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: monospace;
+      font-size: 13px;
+      min-width: 1000px;
+    }
+
+    th, td {
+      border: 1px solid #ccc;
+      padding: 6px 10px;
+      vertical-align: top;
+      word-break: break-word;
+    }
+
+    th {
+      background-color: #f0f0f0;
+    }
+
+    .match {
+      background-color: #e6ffed;
+    }
+
+    .mismatch {
+      background-color: #fff3cd;
+    }
+
+    .missing-main, .missing-iframe {
+      background-color: #ffeef0;
+    }
+
+    .label {
+      font-weight: bold;
+      font-size: 11px;
+      text-transform: uppercase;
+    }
+
+    pre {
+      background: #f7f7f7;
+      border: 1px solid #ddd;
+      padding: 10px;
+      max-height: 300px;
+      overflow: auto;
+      font-size: 12px;
+    }
+
+    .section {
+      margin-top: 40px;
+    }
+
+    .row {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .column {
+      flex: 1;
+      min-width: 400px;
+    }
+
+    .config-section {
+      background: #f8f9fa;
+      border: 1px solid #dee2e6;
+      padding: 15px;
+      border-radius: 5px;
+      margin-bottom: 20px;
+    }
+
+    .config-row {
+      display: flex;
+      gap: 15px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .config-row label {
+      min-width: 120px;
+      font-weight: bold;
+    }
+
+    input[type="text"], input[type="url"] {
+      flex: 1;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+
+    .cookie-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .cookie-row input {
+      flex: 1;
+    }
+
+    .remove-cookie {
+      background: #dc3545;
+      padding: 5px 10px;
+      font-size: 12px;
+    }
+
+    .remove-cookie:hover {
+      background: #c82333;
+    }
+
+    .status-indicator {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-right: 8px;
+    }
+
+    .status-success {
+      background-color: #28a745;
+    }
+
+    .status-error {
+      background-color: #dc3545;
+    }
+
+    .status-pending {
+      background-color: #ffc107;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>FraudNet Cross-Origin Testing</h2>
+    
+    <div class="alert">
+      <h4 style="margin-top: 0;">Cross-Origin Testing Setup:</h4>
+      <ol style="margin-bottom: 0;">
+        <li>Configure the iframe URL to point to a different domain/subdomain</li>
+        <li>Set up cookies that should be passed to the cross-origin iframe</li>
+        <li>Open browser DevTools Network tab to capture FraudNet requests</li>
+        <li>Run tests and compare P1/P2 data between main page and cross-origin iframe</li>
+        <li>Verify that cookies are properly passed and accessible in the iframe</li>
+      </ol>
+    </div>
+
+    <div class="config-section">
+      <h3>Cross-Origin Configuration</h3>
+      
+      <div class="config-row">
+        <label>Iframe URL:</label>
+        <input type="url" id="iframeUrl" value="https://example.com/fraudnet-iframe.html" 
+               placeholder="https://different-domain.com/fraudnet-iframe.html">
+        <button onclick="testIframeUrl()">Test URL</button>
+      </div>
+
+      <div class="config-row">
+        <label>Current Domain:</label>
+        <span id="currentDomain"></span>
+        <span class="status-indicator status-success"></span>
+        <span>Main Page Domain</span>
+      </div>
+
+      <h4>Cookies to Pass to Iframe:</h4>
+      <div id="cookieList">
+        <div class="cookie-row">
+          <input type="text" placeholder="Cookie Name" class="cookie-name">
+          <input type="text" placeholder="Cookie Value" class="cookie-value">
+          <button class="remove-cookie" onclick="removeCookieRow(this)">Remove</button>
+        </div>
+      </div>
+      <button onclick="addCookieRow()">Add Cookie</button>
+      <button onclick="loadCurrentCookies()">Load Current Cookies</button>
+    </div>
+
+    <div class="alert warning">
+      <strong>Note:</strong> For cross-origin cookie passing to work, you may need to:
+      <ul>
+        <li>Set appropriate CORS headers on the iframe content</li>
+        <li>Configure cookies with proper SameSite attributes</li>
+        <li>Use HTTPS for both domains if testing secure cookies</li>
+        <li>Handle browser security restrictions for third-party cookies</li>
+      </ul>
+    </div>
+
+    <button onclick="runMainPage()">Run in Main Page</button>
+    <button onclick="runCrossOriginIframe()" id="runIframeBtn">Run in Cross-Origin iFrame</button>
+    <button onclick="sendCookiesToIframe()">Send Cookies to iFrame</button>
+
+    <div class="row">
+      <div class="column">
+        <h3>Main Page Log</h3>
+        <pre id="mainLog">Waiting...</pre>
+      </div>
+      <div class="column">
+        <h3>Cross-Origin iFrame Log</h3>
+        <pre id="iframeLog">Waiting...</pre>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>P1 Payload Comparison</h2>
+      <div class="row">
+        <div class="column">
+          <label>Main Page P1 Payload</label>
+          <textarea id="p1-main" placeholder="Paste Main Page P1 JSON..."></textarea>
+        </div>
+        <div class="column">
+          <label>Cross-Origin iFrame P1 Payload</label>
+          <textarea id="p1-iframe" placeholder="Paste Cross-Origin iFrame P1 JSON..."></textarea>
+        </div>
+      </div>
+      <button onclick="compare('p1')">Compare P1</button>
+      <div id="p1-results" class="table-container"></div>
+    </div>
+
+    <div class="section">
+      <h2>P2 Payload Comparison</h2>
+      <div class="row">
+        <div class="column">
+          <label>Main Page P2 Payload</label>
+          <textarea id="p2-main" placeholder="Paste Main Page P2 JSON..."></textarea>
+        </div>
+        <div class="column">
+          <label>Cross-Origin iFrame P2 Payload</label>
+          <textarea id="p2-iframe" placeholder="Paste Cross-Origin iFrame P2 JSON..."></textarea>
+        </div>
+      </div>
+      <button onclick="compare('p2')">Compare P2</button>
+      <div id="p2-results" class="table-container"></div>
+    </div>
+
+    <div class="section">
+      <h2>Live Cross-Origin iFrame</h2>
+      <div>
+        <strong>Iframe Status:</strong> 
+        <span class="status-indicator status-pending" id="iframeStatus"></span>
+        <span id="iframeStatusText">Not loaded</span>
+      </div>
+      <iframe id="fraudIframe" sandbox="allow-scripts allow-same-origin allow-forms allow-top-navigation"></iframe>
+    </div>
+
+    <div class="section">
+      <h2>Cookie Debug Information</h2>
+      <pre id="cookieDebug">No cookie information available yet...</pre>
+    </div>
+  </div>
+
+  <script>
+    const mainLog = document.getElementById("mainLog");
+    const iframeLog = document.getElementById("iframeLog");
+    const cookieDebug = document.getElementById("cookieDebug");
+
+    // Set current domain
+    document.getElementById("currentDomain").textContent = window.location.origin;
+
+    function logTo(el, msg) {
+      const timestamp = new Date().toLocaleTimeString();
+      el.textContent += `[${timestamp}] ${msg}\n`;
+      el.scrollTop = el.scrollHeight;
+    }
+
+    function makeGUID() {
+      return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
+        (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+      );
+    }
+
+    function runMainPage() {
+      mainLog.textContent = '';
+      const cmid = makeGUID();
+      const flowId = 'main_page_cross_origin_' + makeGUID();
+      logTo(mainLog, `CMID: ${cmid}`);
+      logTo(mainLog, `Flow ID: ${flowId}`);
+      logTo(mainLog, `Domain: ${window.location.origin}`);
+
+      // Clean up any previous FraudNet configs
+      const existingConfigs = document.querySelectorAll('script[fncls]');
+      existingConfigs.forEach(config => config.remove());
+      const existingScripts = document.querySelectorAll('script[src*="fb.js"]');
+      existingScripts.forEach(script => script.remove());
+
+      const config = document.createElement('script');
+      config.type = 'application/json';
+      config.setAttribute('fncls', 'fnparams-dede7cc5-15fd-4c75-a9f4-36c430ee3a99');
+      config.textContent = JSON.stringify({ 
+        f: cmid, 
+        s: flowId,
+        sandbox: true 
+      });
+      document.body.appendChild(config);
+
+      const loader = document.createElement('script');
+      loader.src = 'https://c.paypal.com/da/r/fb.js';
+      loader.onload = () => logTo(mainLog, 'FraudNet script loaded successfully');
+      loader.onerror = () => logTo(mainLog, 'Failed to load FraudNet script');
+      document.body.appendChild(loader);
+
+      // Log current cookies
+      logTo(mainLog, `Available cookies: ${document.cookie || 'None'}`);
+    }
+
+    function runCrossOriginIframe() {
+      iframeLog.textContent = '';
+      const iframeUrl = document.getElementById('iframeUrl').value.trim();
+      
+      if (!iframeUrl) {
+        alert('Please enter a valid iframe URL');
+        return;
+      }
+
+      const cmid = makeGUID();
+      const flowId = 'iframe_cross_origin_' + makeGUID();
+      logTo(iframeLog, `CMID: ${cmid}`);
+      logTo(iframeLog, `Flow ID: ${flowId}`);
+      logTo(iframeLog, `Target URL: ${iframeUrl}`);
+
+      // Update iframe status
+      updateIframeStatus('pending', 'Loading...');
+
+      const iframe = document.getElementById("fraudIframe");
+      
+      // Create URL with parameters
+      const url = new URL(iframeUrl);
+      url.searchParams.set('cmid', cmid);
+      url.searchParams.set('flowId', flowId);
+      url.searchParams.set('parentOrigin', window.location.origin);
+      
+      // Add cookies as URL parameters (for demonstration)
+      const cookies = getCookiesForIframe();
+      if (cookies.length > 0) {
+        url.searchParams.set('cookies', JSON.stringify(cookies));
+      }
+
+      iframe.src = url.toString();
+      
+      // Set up load handlers
+      iframe.onload = () => {
+        logTo(iframeLog, 'Cross-origin iframe loaded');
+        updateIframeStatus('success', 'Loaded');
+        sendCookiesToIframe();
+      };
+      
+      iframe.onerror = () => {
+        logTo(iframeLog, 'Failed to load cross-origin iframe');
+        updateIframeStatus('error', 'Failed to load');
+      };
+    }
+
+    function sendCookiesToIframe() {
+      const iframe = document.getElementById("fraudIframe");
+      const cookies = getCookiesForIframe();
+      
+      if (iframe.src && cookies.length > 0) {
+        try {
+          iframe.contentWindow.postMessage({
+            type: 'cookies',
+            cookies: cookies,
+            origin: window.location.origin
+          }, '*');
+          logTo(iframeLog, `Sent ${cookies.length} cookies to iframe`);
+          updateCookieDebug();
+        } catch (e) {
+          logTo(iframeLog, `Failed to send cookies: ${e.message}`);
+        }
+      } else {
+        logTo(iframeLog, 'No iframe loaded or no cookies to send');
+      }
+    }
+
+    function getCookiesForIframe() {
+      const cookies = [];
+      const cookieRows = document.querySelectorAll('.cookie-row');
+      
+      cookieRows.forEach(row => {
+        const name = row.querySelector('.cookie-name').value.trim();
+        const value = row.querySelector('.cookie-value').value.trim();
+        if (name && value) {
+          cookies.push({ name, value });
+        }
+      });
+      
+      return cookies;
+    }
+
+    function addCookieRow() {
+      const cookieList = document.getElementById('cookieList');
+      const newRow = document.createElement('div');
+      newRow.className = 'cookie-row';
+      newRow.innerHTML = `
+        <input type="text" placeholder="Cookie Name" class="cookie-name">
+        <input type="text" placeholder="Cookie Value" class="cookie-value">
+        <button class="remove-cookie" onclick="removeCookieRow(this)">Remove</button>
+      `;
+      cookieList.appendChild(newRow);
+    }
+
+    function removeCookieRow(button) {
+      button.parentElement.remove();
+    }
+
+    function loadCurrentCookies() {
+      const cookieList = document.getElementById('cookieList');
+      cookieList.innerHTML = ''; // Clear existing rows
+      
+      const cookies = document.cookie.split(';');
+      
+      if (cookies.length === 1 && cookies[0].trim() === '') {
+        // No cookies available
+        addCookieRow();
+        logTo(mainLog, 'No cookies found in current domain');
+        return;
+      }
+      
+      cookies.forEach(cookie => {
+        const [name, value] = cookie.split('=').map(s => s.trim());
+        if (name) {
+          const newRow = document.createElement('div');
+          newRow.className = 'cookie-row';
+          newRow.innerHTML = `
+            <input type="text" placeholder="Cookie Name" class="cookie-name" value="${name}">
+            <input type="text" placeholder="Cookie Value" class="cookie-value" value="${value || ''}">
+            <button class="remove-cookie" onclick="removeCookieRow(this)">Remove</button>
+          `;
+          cookieList.appendChild(newRow);
+        }
+      });
+      
+      // Add one empty row for new cookies
+      addCookieRow();
+      logTo(mainLog, `Loaded ${cookies.length} cookies from current domain`);
+    }
+
+    function testIframeUrl() {
+      const url = document.getElementById('iframeUrl').value.trim();
+      if (!url) {
+        alert('Please enter a URL to test');
+        return;
+      }
+      
+      try {
+        const urlObj = new URL(url);
+        const currentOrigin = window.location.origin;
+        const targetOrigin = urlObj.origin;
+        
+        if (currentOrigin === targetOrigin) {
+          alert('Warning: This URL is on the same origin. For true cross-origin testing, use a different domain.');
+        } else {
+          alert(`✓ Cross-origin URL detected:\nCurrent: ${currentOrigin}\nTarget: ${targetOrigin}`);
+        }
+      } catch (e) {
+        alert('Invalid URL format');
+      }
+    }
+
+    function updateIframeStatus(status, text) {
+      const indicator = document.getElementById('iframeStatus');
+      const statusText = document.getElementById('iframeStatusText');
+      
+      indicator.className = `status-indicator status-${status}`;
+      statusText.textContent = text;
+    }
+
+    function updateCookieDebug() {
+      const cookies = getCookiesForIframe();
+      const currentCookies = document.cookie;
+      
+      let debug = `=== Cookie Debug Information ===\n`;
+      debug += `Current Domain: ${window.location.origin}\n`;
+      debug += `Current Cookies: ${currentCookies || 'None'}\n\n`;
+      debug += `Cookies to Send to iFrame (${cookies.length}):\n`;
+      
+      cookies.forEach((cookie, index) => {
+        debug += `  ${index + 1}. ${cookie.name} = ${cookie.value}\n`;
+      });
+      
+      debug += `\nTimestamp: ${new Date().toISOString()}`;
+      cookieDebug.textContent = debug;
+    }
+
+    // Listen for messages from cross-origin iframe
+    window.addEventListener("message", (e) => {
+      // Be careful with cross-origin messages - validate origin if needed
+      if (e.data?.type === "log") {
+        logTo(iframeLog, e.data.msg);
+      } else if (e.data?.type === "cookieReceived") {
+        logTo(iframeLog, `Cookie received: ${e.data.cookie.name} = ${e.data.cookie.value}`);
+      } else if (e.data?.type === "fraudnetLoaded") {
+        logTo(iframeLog, "FraudNet loaded successfully in cross-origin iframe");
+        updateIframeStatus('success', 'FraudNet Active');
+      } else if (e.data?.type === "error") {
+        logTo(iframeLog, `Error: ${e.data.message}`);
+        updateIframeStatus('error', 'Error');
+      }
+    });
+
+    // Comparison and formatting functions (same as original)
+    function compare(type) {
+      const mainRaw = document.getElementById(`${type}-main`).value.trim();
+      const iframeRaw = document.getElementById(`${type}-iframe`).value.trim();
+      let mainObj, iframeObj;
+
+      try {
+        mainObj = JSON.parse(mainRaw);
+        iframeObj = JSON.parse(iframeRaw);
+      } catch (e) {
+        alert("Invalid JSON in one of the inputs.");
+        return;
+      }
+
+      const flatMain = flattenObject(mainObj);
+      const flatIframe = flattenObject(iframeObj);
+      const allKeys = new Set([...Object.keys(flatMain), ...Object.keys(flatIframe)]);
+      const rows = [];
+
+      allKeys.forEach(key => {
+        const valMain = flatMain[key];
+        const valIframe = flatIframe[key];
+        let status = '', label = '';
+
+        if (valMain !== undefined && valIframe !== undefined) {
+          status = valMain === valIframe ? 'match' : 'mismatch';
+          label = status === 'match' ? 'MATCH' : 'DIFFERENT';
+        } else if (valMain === undefined) {
+          status = 'missing-main';
+          label = 'Missing in Main Page';
+        } else {
+          status = 'missing-iframe';
+          label = 'Missing in iFrame';
+        }
+
+        rows.push({ key, valMain, valIframe, status, label });
+      });
+
+      renderTable(`${type}-results`, rows);
+    }
+
+    function flattenObject(obj, prefix = '', res = {}) {
+      for (let key in obj) {
+        const path = prefix ? `${prefix}.${key}` : key;
+        if (typeof obj[key] === 'object' && obj[key] !== null) {
+          flattenObject(obj[key], path, res);
+        } else {
+          res[path] = obj[key];
+        }
+      }
+      return res;
+    }
+
+    function renderTable(containerId, rows) {
+      let html = `
+        <table>
+          <thead>
+            <tr>
+              <th>Field</th>
+              <th>Main Page</th>
+              <th>Cross-Origin iFrame</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+      `;
+
+      rows.sort((a, b) => a.key.localeCompare(b.key)).forEach(row => {
+        html += `
+          <tr class="${row.status}">
+            <td>${row.key}</td>
+            <td>${row.valMain === undefined ? '<i>Not present</i>' : JSON.stringify(row.valMain)}</td>
+            <td>${row.valIframe === undefined ? '<i>Not present</i>' : JSON.stringify(row.valIframe)}</td>
+            <td class="label">${row.label}</td>
+          </tr>
+        `;
+      });
+
+      html += `</tbody></table>`;
+      document.getElementById(containerId).innerHTML = html;
+    }
+
+    // Auto-format JSON functionality
+    function setupAutoFormat() {
+      const textareas = ['p1-main', 'p1-iframe', 'p2-main', 'p2-iframe'];
+      
+      textareas.forEach(id => {
+        const textarea = document.getElementById(id);
+        
+        textarea.addEventListener('paste', function(e) {
+          setTimeout(() => formatJSON(id), 10);
+        });
+        
+        textarea.addEventListener('input', function(e) {
+          const value = e.target.value.trim();
+          if ((value.startsWith('{') && value.endsWith('}')) || 
+              (value.startsWith('[') && value.endsWith(']'))) {
+            setTimeout(() => formatJSON(id, true), 500);
+          }
+        });
+      });
+    }
+
+    function formatJSON(textareaId, silent = false) {
+      const textarea = document.getElementById(textareaId);
+      const value = textarea.value.trim();
+      
+      if (!value) return;
+      
+      try {
+        const parsed = JSON.parse(value);
+        const formatted = JSON.stringify(parsed, null, 2);
+        textarea.value = formatted;
+        
+        textarea.style.height = 'auto';
+        textarea.style.height = Math.min(textarea.scrollHeight, 400) + 'px';
+        
+        textarea.classList.add('json-formatted');
+        setTimeout(() => {
+          textarea.classList.remove('json-formatted');
+        }, 1000);
+        
+      } catch (e) {
+        if (!silent) {
+          const originalPlaceholder = textarea.placeholder;
+          textarea.style.borderColor = '#dc3545';
+          textarea.placeholder = 'Invalid JSON format';
+          setTimeout(() => {
+            textarea.placeholder = originalPlaceholder;
+            textarea.style.borderColor = '';
+          }, 2000);
+        }
+      }
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', function() {
+      setupAutoFormat();
+      updateCookieDebug();
+    });
+  </script>
+</body>
+</html>
