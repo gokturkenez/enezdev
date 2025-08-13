@@ -274,16 +274,6 @@
       <button onclick="loadCurrentCookies()">Load Current Cookies</button>
     </div>
 
-    <div class="alert warning">
-      <strong>Note:</strong> For cross-origin cookie passing to work, you may need to:
-      <ul>
-        <li>Set appropriate CORS headers on the iframe content</li>
-        <li>Configure cookies with proper SameSite attributes</li>
-        <li>Use HTTPS for both domains if testing secure cookies</li>
-        <li>Handle browser security restrictions for third-party cookies</li>
-      </ul>
-    </div>
-
     <button onclick="runMainPage()">Run in Main Page</button>
     <button onclick="runCrossOriginIframe()" id="runIframeBtn">Run in Cross-Origin iFrame</button>
     <button onclick="sendCookiesToIframe()">Send Cookies to iFrame</button>
