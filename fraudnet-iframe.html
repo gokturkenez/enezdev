@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FraudNet Cross-Origin iFrame</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 10px;
+      background: #f8f9fa;
+      font-size: 12px;
+    }
+    .info {
+      background: #e7f3ff;
+      border: 1px solid #b6d4fe;
+      padding: 8px;
+      margin-bottom: 10px;
+      border-radius: 4px;
+    }
+    .status {
+      padding: 5px;
+      margin: 5px 0;
+      border-radius: 3px;
+      font-size: 11px;
+    }
+    .success { background: #d4edda; border: 1px solid #c3e6cb; }
+    .warning { background: #fff3cd; border: 1px solid #ffeaa7; }
+    .error { background: #f8d7da; border: 1px solid #f1c6cb; }
+    pre {
+      background: #f7f7f7;
+      border: 1px solid #ddd;
+      padding: 8px;
+      font-size: 10px;
+      max-height: 100px;
+      overflow: auto;
+      margin: 5px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="info">
+    <strong>Cross-Origin FraudNet iFrame</strong><br>
+    Domain: <span id="currentDomain"></span><br>
+    Status: <span id="status">Initializing...</span>
+  </div>
+  
+  <div id="cookieStatus" class="status warning">
+    Waiting for cookies from parent...
+  </div>
+  
+  <div>
+    <strong>Received Cookies:</strong>
+    <pre id="cookieList">None yet...</pre>
+  </div>
+  
+  <div>
+    <strong>FraudNet Status:</strong>
+    <pre id="fraudnetStatus">Not loaded</pre>
+  </div>
+
+  <script>
+    const currentDomain = document.getElementById('currentDomain');
+    const status = document.getElementById('status');
+    const cookieStatus = document.getElementById('cookieStatus');
+    const cookieList = document.getElementById('cookieList');
+    const fraudnetStatus = document.getElementById('fraudnetStatus');
+    
+    let parentOrigin = '*'; // Will be updated when we receive the first message
+    let receivedCookies = [];
+    let cmid = '';
+    let flowId = '';
+
+    // Set current domain
+    currentDomain.textContent = window.location.origin;
+
+    function log(message) {
+      const timestamp = new Date().toLocaleTimeString();
+      console.log(`[${timestamp}] ${message}`);
+      
+      // Send log to parent
+      if (parent !== window) {
+        parent.postMessage({
+          type: 'log',
+          msg: message
+        }, parentOrigin);
+      }
+    }
+
+    function updateStatus(text, className = '') {
+      status.textContent = text;
+      if (className) {
+        status.className = className;
+      }
+    }
+
+    function updateCookieStatus(text, className = 'warning') {
+      cookieStatus.textContent = text;
+      cookieStatus.className = `status ${className}`;
+    }
+
+    function updateCookieList() {
+      if (receivedCookies.length === 0) {
+        cookieList.textContent = 'None received';
+        return;
+      }
+      
+      let text = '';
+      receivedCookies.forEach((cookie, index) => {
+        text += `${index + 1}. ${cookie.name} = ${cookie.value}\n`;
+      });
+      cookieList.textContent = text;
+    }
+
+    function updateFraudnetStatus(text) {
+      fraudnetStatus.textContent = text;
+    }
+
+    // Parse URL parameters
+    function parseUrlParams() {
+      const urlParams = new URLSearchParams(window.location.search);
+      cmid = urlParams.get('cmid') || '';
+      flowId = urlParams.get('flowId') || '';
+      parentOrigin = urlParams.get('parentOrigin') || '*';
+      
+      log(`Iframe initialized with CMID: ${cmid}, Flow ID: ${flowId}`);
+      log(`Parent origin: ${parentOrigin}`);
+      
+      // Try to parse cookies from URL if available
+      const cookiesParam = urlParams.get('cookies');
+      if (cookiesParam) {
+        try {
+          const cookies = JSON.parse(cookiesParam);
+          receivedCookies = cookies;
+          updateCookieList();
+          updateCookieStatus(`Received ${cookies.length} cookies via URL`, 'success');
+          log(`Received ${cookies.length} cookies via URL parameters`);
+        } catch (e) {
+          log(`Failed to parse cookies from URL: ${e.message}`);
+        }
+      }
+    }
+
+    // Listen for messages from parent window
+    window.addEventListener('message', function(event) {
+      // Validate origin if we know the parent origin
+      if (parentOrigin !== '*' && event.origin !== parentOrigin) {
+        log(`Ignored message from unauthorized origin: ${event.origin}`);
+        return;
+      }
+
+      const data = event.data;
+      
+      if (data.type === 'cookies') {
+        receivedCookies = data.cookies || [];
+        parentOrigin = data.origin || parentOrigin;
+        
+        log(`Received ${receivedCookies.length} cookies from parent (${event.origin})`);
+        updateCookieList();
+        updateCookieStatus(`Received ${receivedCookies.length} cookies from parent`, 'success');
+        
+        // Simulate setting cookies (in real scenario, you might try to use these for API calls)
+        receivedCookies.forEach(cookie => {
+          // Note: document.cookie setting across origins is restricted
+          // This is mainly for demonstration/debugging
+          try {
+            // In a real scenario, you'd use these cookies in your API calls
+            log(`Processing cookie: ${cookie.name} = ${cookie.value}`);
+            
+            parent.postMessage({
+              type: 'cookieReceived',
+              cookie: cookie
+            }, parentOrigin);
+          } catch (e) {
+            log(`Failed to process cookie ${cookie.name}: ${e.message}`);
+          }
+        });
+        
+        // Now that we have cookies, load FraudNet
+        loadFraudNet();
+      }
+    });
+
+    function loadFraudNet() {
+      if (!cmid || !flowId) {
+        log('Cannot load FraudNet: missing CMID or Flow ID');
+        updateFraudnetStatus('Error: Missing required parameters');
+        return;
+      }
+
+      log('Loading FraudNet script...');
+      updateFraudnetStatus('Loading FraudNet...');
+
+      // Clean up any existing FraudNet
+      const existingConfigs = document.querySelectorAll('script[fncls]');
+      existingConfigs.forEach(config => config.remove());
+      const existingScripts = document.querySelectorAll('script[src*="fb.js"]');
+      existingScripts.forEach(script => script.remove());
+
+      // Create FraudNet configuration
+      const config = document.createElement('script');
+      config.type = 'application/json';
+      config.setAttribute('fncls', 'fnparams-dede7cc5-15fd-4c75-a9f4-36c430ee3a99');
+      config.textContent = JSON.stringify({
+        f: cmid,
+        s: flowId,
+        sandbox: true
+      });
+      document.body.appendChild(config);
+
+      // Load FraudNet script
+      const loader = document.createElement('script');
+      loader.src = 'https://c.paypal.com/da/r/fb.js';
+      
+      loader.onload = function() {
+        log('FraudNet script loaded successfully in cross-origin iframe');
+        updateFraudnetStatus('FraudNet loaded successfully');
+        updateStatus('FraudNet Active', 'success');
+        
+        parent.postMessage({
+          type: 'fraudnetLoaded'
+        }, parentOrigin);
+      };
+      
+      loader.onerror = function() {
+        log('Failed to load FraudNet script');
+        updateFraudnetStatus('Failed to load FraudNet');
+        updateStatus('Error loading FraudNet', 'error');
+        
+        parent.postMessage({
+          type: 'error',
+          message: 'Failed to load FraudNet script'
+        }, parentOrigin);
+      };
+      
+      document.body.appendChild(loader);
+    }
+
+    // Additional security and debugging info
+    function reportSecurityInfo() {
+      const info = {
+        domain: window.location.origin,
+        protocol: window.location.protocol,
+        cookiesEnabled: navigator.cookieEnabled,
+        userAgent: navigator.userAgent.substring(0, 50) + '...',
+        referrer: document.referrer || 'None'
+      };
+      
+      log(`Security Info: ${JSON.stringify(info)}`);
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', function() {
+      parseUrlParams();
+      reportSecurityInfo();
+      updateStatus('Ready for cross-origin communication', 'warning');
+      
+      // Auto-load FraudNet if we already have parameters but no cookies expected
+      if (cmid && flowId && receivedCookies.length === 0) {
+        setTimeout(() => {
+          if (receivedCookies.length === 0) {
+            log('No cookies received after 3 seconds, loading FraudNet anyway...');
+            updateCookieStatus('No cookies received, proceeding without them', 'warning');
+            loadFraudNet();
+          }
+        }, 3000);
+      }
+    });
+
+    // Handle iframe resize
+    function resizeIframe() {
+      const height = document.body.scrollHeight;
+      parent.postMessage({
+        type: 'resize',
+        height: height
+      }, parentOrigin);
+    }
+
+    // Call resize on load and when content changes
+    window.addEventListener('load', resizeIframe);
+    window.addEventListener('resize', resizeIframe);
+  </script>
+</body>
+</html>
